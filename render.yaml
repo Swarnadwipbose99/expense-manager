@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: expense-manager
+    env: python
+    buildCommand: pip install -r expense_manager/requirements.txt
+    startCommand: gunicorn --chdir expense_manager run:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: FLASK_CONFIG
+        value: expense_manager.config.ProductionConfig
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: expense-manager-db
+          property: connectionString
+
+databases:
+  - name: expense-manager-db
+    databaseName: expense_manager
+    user: expense_user
+    plan: free

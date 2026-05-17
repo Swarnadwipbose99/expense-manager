@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Sign Up – Expense Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-sm-10 col-md-6 col-lg-4">
+    <div class="card shadow-sm border-0 rounded-4">
+      <div class="card-body p-4">
+        <h3 class="mb-1 fw-bold">Create account</h3>
+        <p class="text-muted mb-4">Start tracking your expenses for free</p>
+
+        <div id="signupAlert" class="alert d-none" role="alert"></div>
+
+        <form id="signupForm" novalidate>
+          <div class="mb-3">
+            <label for="email" class="form-label">Email address</label>
+            <input type="email" class="form-control" id="email"
+                   placeholder="you@example.com" required autocomplete="email" />
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="password"
+                   placeholder="Min. 6 characters" required minlength="6"
+                   autocomplete="new-password" />
+          </div>
+          <div class="mb-4">
+            <label for="confirmPassword" class="form-label">Confirm password</label>
+            <input type="password" class="form-control" id="confirmPassword"
+                   placeholder="Repeat password" required autocomplete="new-password" />
+          </div>
+          <button type="submit" class="btn btn-success w-100" id="signupBtn">
+            <span id="signupSpinner" class="spinner-border spinner-border-sm d-none me-1"></span>
+            Create Account
+          </button>
+        </form>
+
+        <hr class="my-3" />
+        <p class="text-center mb-0 small">
+          Already have an account?
+          <a href="/login" class="text-decoration-none fw-semibold">Sign in</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('signupForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('signupBtn');
+  const spinner = document.getElementById('signupSpinner');
+  const alertEl = document.getElementById('signupAlert');
+
+  const password = document.getElementById('password').value;
+  const confirm = document.getElementById('confirmPassword').value;
+
+  alertEl.className = 'alert d-none';
+
+  if (password !== confirm) {
+    alertEl.textContent = 'Passwords do not match.';
+    alertEl.classList.add('alert-danger');
+    alertEl.classList.remove('d-none');
+    return;
+  }
+
+  btn.disabled = true;
+  spinner.classList.remove('d-none');
+
+  try {
+    const res = await fetch('/api/v1/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: document.getElementById('email').value.trim(),
+        password
+      })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      localStorage.setItem('jwt', data.access_token);
+      localStorage.setItem('refresh_token', data.refresh_token);
+      window.location.href = '/dashboard';
+    } else {
+      alertEl.textContent = data.msg || 'Sign up failed';
+      alertEl.classList.add('alert-danger');
+      alertEl.classList.remove('d-none');
+    }
+  } catch (err) {
+    alertEl.textContent = 'Network error – please try again.';
+    alertEl.classList.add('alert-danger');
+    alertEl.classList.remove('d-none');
+  } finally {
+    btn.disabled = false;
+    spinner.classList.add('d-none');
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Expense – Expense Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-sm-10 col-md-8 col-lg-6">
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-body p-4">
+        <h4 class="fw-bold mb-1" id="formTitle">Add Expense</h4>
+        <p class="text-muted small mb-4" id="formSubtitle">Fill in the details below</p>
+
+        <div id="formAlert" class="alert d-none" role="alert"></div>
+
+        <form id="expenseForm" novalidate>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="amount" class="form-label">Amount (₹)</label>
+              <div class="input-group">
+                <span class="input-group-text">₹</span>
+                <input type="number" class="form-control" id="amount"
+                       placeholder="0.00" step="0.01" min="0.01" required />
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label for="date" class="form-label">Date</label>
+              <input type="date" class="form-control" id="date" required />
+            </div>
+            <div class="col-md-6">
+              <label for="category" class="form-label">Category</label>
+              <input type="text" class="form-control" id="category"
+                     placeholder="e.g. Food, Travel…" required
+                     list="categorySuggestions" />
+              <datalist id="categorySuggestions">
+                <option value="Food">
+                <option value="Transport">
+                <option value="Shopping">
+                <option value="Entertainment">
+                <option value="Utilities">
+                <option value="Healthcare">
+                <option value="Education">
+                <option value="Other">
+              </datalist>
+            </div>
+            <div class="col-md-6">
+              <label for="description" class="form-label">Description <span class="text-muted">(optional)</span></label>
+              <input type="text" class="form-control" id="description"
+                     placeholder="Brief note…" />
+            </div>
+          </div>
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary" id="saveBtn">
+              <span id="saveSpinner" class="spinner-border spinner-border-sm d-none me-1"></span>
+              <span id="saveBtnText">Save Expense</span>
+            </button>
+            <a href="/dashboard" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const token = localStorage.getItem('jwt');
+if (!token) { window.location.href = '/login'; }
+
+// Set today's date as default
+document.getElementById('date').valueAsDate = new Date();
+
+// Detect edit mode from URL: /expenses/123/edit
+const pathParts = window.location.pathname.split('/');
+const isEdit = pathParts.includes('edit');
+const expenseId = isEdit ? parseInt(pathParts[pathParts.indexOf('edit') - 1]) : null;
+
+if (isEdit) {
+  document.getElementById('formTitle').textContent = 'Edit Expense';
+  document.getElementById('saveBtnText').textContent = 'Update Expense';
+
+  // Load existing expense
+  (async () => {
+    const res = await apiFetch('/api/v1/expenses');
+    if (res.ok) {
+      const expenses = await res.json();
+      const exp = expenses.find(e => e.id === expenseId);
+      if (exp) {
+        document.getElementById('amount').value = exp.amount;
+        document.getElementById('date').value = exp.date;
+        document.getElementById('category').value = exp.category;
+        document.getElementById('description').value = exp.description || '';
+      }
+    }
+  })();
+}
+
+document.getElementById('expenseForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('saveBtn');
+  const spinner = document.getElementById('saveSpinner');
+  const alertEl = document.getElementById('formAlert');
+
+  btn.disabled = true;
+  spinner.classList.remove('d-none');
+  alertEl.className = 'alert d-none';
+
+  const payload = {
+    amount: parseFloat(document.getElementById('amount').value),
+    date: document.getElementById('date').value,
+    category: document.getElementById('category').value.trim(),
+    description: document.getElementById('description').value.trim()
+  };
+
+  const url = isEdit ? `/api/v1/expenses/${expenseId}` : '/api/v1/expenses';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  try {
+    const res = await apiFetch(url, {
+      method,
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      window.location.href = '/dashboard';
+    } else {
+      alertEl.textContent = data.msg || 'Failed to save expense.';
+      alertEl.classList.add('alert-danger');
+      alertEl.classList.remove('d-none');
+    }
+  } catch (err) {
+    alertEl.textContent = 'Network error – please try again.';
+    alertEl.classList.add('alert-danger');
+    alertEl.classList.remove('d-none');
+  } finally {
+    btn.disabled = false;
+    spinner.classList.add('d-none');
+  }
+});
+</script>
+{% endblock %}

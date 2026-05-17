@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+ENV/
+*.egg-info/
+
+# Virtual environment
+venv/
+
+# IDE
+.idea/
+.vscode/
+
+# Flask
+instance/
+*.db
+
+# Env files
+.env
+
+# Pytest cache
+.pytest_cache/
+
+# Migrations
+migrations/
